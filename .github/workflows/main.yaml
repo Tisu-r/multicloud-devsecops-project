@@ -1,0 +1,46 @@
+# main.yml
+
+# 1. 파이프라인의 이름
+name: Deploy to GCP Cloud Run
+
+# 2. 언제 이 파이프라인을 실행할 것인가?
+# -> 'main' 브랜치에 push 이벤트가 발생했을 때
+on:
+  push:
+    branches:
+      - main
+
+# 3. 어떤 작업(Job)들을 실행할 것인가?
+jobs:
+  # 'deploy' 라는 이름의 작업을 정의
+  deploy:
+    # 4. 이 작업은 어떤 환경에서 실행할 것인가?
+    # -> 최신 우분투(리눅스) 환경
+    runs-on: ubuntu-latest
+
+    # 5. 작업의 세부 단계(Steps)들을 정의
+    steps:
+      # 5-1. 코드 가져오기
+      # -> GitHub 레포지토리의 코드를 가상 머신으로 복사해옴
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 5-2. GCP에 로그인하기
+      # -> 이전에 GitHub Secrets에 저장한 GCP_CREDENTIALS를 사용
+      - name: Authenticate to Google Cloud
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      # 5-3. Terraform 설치하기
+      # -> Terraform 명령어를 사용할 수 있도록 준비
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      # 5-4. Terraform 실행하기
+      # -> terraform/gcp 폴더로 이동해서 Terraform 명령을 실행
+      - name: Run Terraform
+        run: |
+          cd terraform/gcp   # Terraform 코드가 있는 폴더로 이동
+          terraform init     # Terraform 초기화 (플러그인 다운로드)
+          terraform apply -auto-approve # Terraform 실행하여 인프라 구축
