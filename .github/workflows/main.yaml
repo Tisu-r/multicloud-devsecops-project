@@ -26,11 +26,11 @@ jobs:
         uses: actions/checkout@v3
 
       # 5-2. GCP에 로그인하기
-      # -> 이전에 GitHub Secrets에 저장한 GCP_CREDENTIALS를 사용
+      # -> 이전에 GitHub Secrets에 저장한 GCP_CREDENTIAL를 사용
       - name: Authenticate to Google Cloud
         uses: 'google-github-actions/auth@v1'
         with:
-          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+          credentials_json: '${{ secrets.GCP_CREDENTIAL }}'
 
       # 5-3. Terraform 설치하기
       # -> Terraform 명령어를 사용할 수 있도록 준비
