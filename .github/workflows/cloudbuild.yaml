@@ -1,0 +1,20 @@
+# cloudbuild.yaml
+
+steps:
+# 1단계: Docker 이미지 빌드
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    - 'build'
+    - '-t'
+    - 'us-central1-docker.pkg.dev/main-ember-469911-e9/devsecops-project/fake_service:$SHORT_SHA'
+    - '.'
+
+# 2단계: 빌드한 이미지를 Artifact Registry에 푸시(업로드)
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    - 'push'
+    - 'us-central1-docker.pkg.dev/main-ember-469911-e9/devsecops-project/fake_service:$SHORT_SHA'
+
+# 빌드가 완료되면 푸시된 이미지 목록을 명시
+images:
+- 'us-central1-docker.pkg.dev/main-ember-469911-e9/devsecops-project/fake_service:$SHORT_SHA'
