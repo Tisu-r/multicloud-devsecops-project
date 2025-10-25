@@ -19,5 +19,7 @@ steps:
 images:
 - 'us-central1-docker.pkg.dev/main-ember-469911-e9/devsecops-project/fake_service:$SHORT_SHA'
 
+# 빌드 로그 저장
+logsBucket: 'gs://cloudbuild-logs-main-ember-469911-e9'
 options:
-  logsBucket: 'gs://cloudbuild-logs-main-ember-469911-e9'
+  logging: GCS_ONLY
