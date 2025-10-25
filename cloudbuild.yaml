@@ -18,3 +18,6 @@ steps:
 # 빌드가 완료되면 푸시된 이미지 목록을 명시
 images:
 - 'us-central1-docker.pkg.dev/main-ember-469911-e9/devsecops-project/fake_service:$SHORT_SHA'
+
+options:
+  logsBucket: 'gs://cloudbuild-logs-main-ember-469911-e9'

@@ -3,44 +3,67 @@
 # 1. 파이프라인의 이름
 name: Deploy to GCP Cloud Run
 
-# 2. 언제 이 파이프라인을 실행할 것인가?
-# -> 'main' 브랜치에 push 이벤트가 발생했을 때
+# 2. 파이프라인 실행 조건: 'main' 브랜치에 코드가 푸시되었을 때
 on:
   push:
     branches:
       - main
 
-# 3. 어떤 작업(Job)들을 실행할 것인가?
+# 3. 실행할 작업(Job) 정의
 jobs:
-  # 'deploy' 라는 이름의 작업을 정의
+  # 'deploy' 작업
   deploy:
-    # 4. 이 작업은 어떤 환경에서 실행할 것인가?
-    # -> 최신 우분투(리눅스) 환경
+    # 4. 실행 환경: 최신 우분투
     runs-on: ubuntu-latest
 
-    # 5. 작업의 세부 단계(Steps)들을 정의
+    # 5. 작업의 세부 단계(Steps)
     steps:
-      # 5-1. 코드 가져오기
-      # -> GitHub 레포지토리의 코드를 가상 머신으로 복사해옴
+      # 5-1. GitHub 저장소의 코드를 가져옴
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 5-2. GCP에 로그인하기
-      # -> 이전에 GitHub Secrets에 저장한 GCP_CREDENTIAL를 사용
+      # 5-2. GCP 인증 (GitHub Secrets 사용)
       - name: Authenticate to Google Cloud
         uses: 'google-github-actions/auth@v1'
         with:
           credentials_json: '${{ secrets.GCP_CREDENTIAL }}'
 
-      # 5-3. Terraform 설치하기
-      # -> Terraform 명령어를 사용할 수 있도록 준비
+      # 5-3. Terraform CLI 설치
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
-      # 5-4. Terraform 실행하기
-      # -> terraform/gcp 폴더로 이동해서 Terraform 명령을 실행
-      - name: Run Terraform
+      # 5-4. Terraform 초기화 및 기존 리소스 가져오기 (Import)
+      # 'already exists' 오류를 방지하기 위해 apply 전에 실행
+      - name: Terraform Init and Import
+        working-directory: terraform/gcp
         run: |
-          cd terraform/gcp   # Terraform 코드가 있는 폴더로 이동
-          terraform init     # Terraform 초기화 (플러그인 다운로드)
-          terraform apply -auto-approve # Terraform 실행하여 인프라 구축
+          terraform init
+          
+          # 이미 존재하는 Cloud Run Job을 Terraform 상태로 가져오기
+          # 리소스가 없어서 실패해도 || true 덕분에 오류로 처리되지 않음
+          terraform import google_cloud_run_v2_job.log_generator_job projects/main-ember-469911-e9/locations/us-central1/jobs/log-generator-job || true
+          
+          # 이미 존재하는 서비스 계정을 Terraform 상태로 가져오기
+          terraform import google_service_account.scheduler_invoker_sa projects/main-ember-469911-e9/serviceAccounts/scheduler-job-invoker@main-ember-469911-e9.iam.gserviceaccount.com || true
+
+      # 5-5. Cloud Build가 이미지를 빌드할 시간을 주기 위한 대기 (선택사항이지만 안정성을 위해 추천)
+      - name: Wait for Image Build to Complete
+        run: |
+          echo "Waiting for 2 minutes for the Cloud Build to finish..."
+          sleep 300
+
+      # 5-6. Terraform 실행 (Apply)
+      # 최신 이미지 URL을 동적으로 생성하여 변수로 전달
+      - name: Terraform Apply with Dynamic Image URL
+        working-directory: terraform/gcp
+        run: |
+          # 현재 커밋의 짧은 해시(7자리)를 가져옴 (Cloud Build의 $SHORT_SHA와 동일)
+          export SHORT_SHA=$(git rev-parse --short HEAD)
+          
+          # Cloud Build에서 생성될 최신 이미지 주소를 조합
+          export IMAGE_URL="us-central1-docker.pkg.dev/main-ember-469911-e9/devsecops-project/app:${SHORT_SHA}"
+          
+          echo "Deploying with image: ${IMAGE_URL}"
+          
+          # 조합한 이미지 주소를 'image_url' 변수로 전달하며 Terraform 실행
+          terraform apply -auto-approve -var="image_url=${IMAGE_URL}"
