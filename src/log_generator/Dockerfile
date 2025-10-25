@@ -11,7 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 4. 소스코드 복사
-COPY main.py .
+COPY log_generator.py .
 
 # 5. 컨테이너가 시작될 때 실행할 명령어
-CMD ["python", "main.py"]
+CMD ["python", "log_generator.py"]
