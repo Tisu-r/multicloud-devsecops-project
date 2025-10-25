@@ -4,4 +4,4 @@
 gcp_project_id = "main-ember-469911-e9"
 
 # 우선 테스트를 위해 구글이 제공하는 샘플 이미지를 사용합니다.
-container_image = "us-docker.pkg.dev/cloudrun/container/hello"
+image_url = "us-docker.pkg.dev/cloudrun/container/hello"
