@@ -32,3 +32,9 @@ variable "job_schedule" {
   description = "The cron schedule for the Cloud Scheduler job (e.g., '*/10 * * * *' for every 10 minutes)."
   default     = "*/10 * * * *"
 }
+
+variable "environment" {
+  description = "Deployment environment (e.g., dev, stg, prod)"
+  type        = string
+  default     = "dev"
+}

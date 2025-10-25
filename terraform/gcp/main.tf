@@ -69,7 +69,7 @@ resource "google_cloud_run_v2_job_iam_member" "job_invoker_permission" {
 # ----------------------------------------------------
 resource "google_cloud_scheduler_job" "run_log_generator" {
   project  = var.gcp_project_id
-  name     = "run-log-generator-job"
+  name     = "run-log-generator-job-${var.environment}"
   region = var.gcp_region
   
   # UNIX cron 형식으로 실행 주기를 설정합니다. "*/10 * * * *"는 '10분마다' 라는 뜻입니다.
