@@ -2,23 +2,33 @@
 
 variable "gcp_project_id" {
   type        = string
-  description = "사용할 GCP 프로젝트의 ID입니다."
+  description = "The GCP project ID."
 }
 
 variable "gcp_region" {
   type        = string
-  description = "리소스를 생성할 GCP 리전입니다."
-  default     = "us-central1" # 기본값을 설정해두면 편리합니다.
+  description = "The GCP region for resources."
+  default     = "us-central1"
 }
 
-variable "service_name" {
+# service_name -> job_name 으로 변경
+variable "job_name" {
   type        = string
-  description = "Cloud Run 서비스의 이름입니다."
-  default     = "my-devsecops-service"
+  description = "The name of the Cloud Run Job."
+  default     = "log-generator-job"
 }
 
-variable "container_image" {
+# container_image -> image_url 로 변경 (GitHub Actions 워크플로우와 일치)
+variable "image_url" {
   type        = string
-  description = "Cloud Run에 배포할 컨테이너 이미지 주소입니다."
-  # 이 값은 나중에 GitHub Actions에서 동적으로 전달할 것이므로 기본값이 없습니다.
+  description = "The container image URL for the Cloud Run Job."
+  # 기본값은 비워두거나 테스트용 이미지를 넣습니다. 이 값은 CI/CD 파이프라인에서 덮어쓰게 됩니다.
+  default     = "us-docker.pkg.dev/cloudrun/container/hello" 
+}
+
+# 새로 추가된 변수
+variable "job_schedule" {
+  type        = string
+  description = "The cron schedule for the Cloud Scheduler job (e.g., '*/10 * * * *' for every 10 minutes)."
+  default     = "*/10 * * * *"
 }
