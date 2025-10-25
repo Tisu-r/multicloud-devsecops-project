@@ -7,7 +7,7 @@ steps:
     - 'build'
     - '-t'
     - 'us-central1-docker.pkg.dev/main-ember-469911-e9/devsecops-project/fake_service:$SHORT_SHA'
-    - '.'
+    - './src/log_generator'
 
 # 2단계: 빌드한 이미지를 Artifact Registry에 푸시(업로드)
 - name: 'gcr.io/cloud-builders/docker'
