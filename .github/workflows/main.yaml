@@ -1,69 +1,45 @@
-# main.yml
+# main.yml (수정 후)
 
-# 1. 파이프라인의 이름
 name: Deploy to GCP Cloud Run
 
-# 2. 파이프라인 실행 조건: 'main' 브랜치에 코드가 푸시되었을 때
 on:
   push:
     branches:
       - main
 
-# 3. 실행할 작업(Job) 정의
 jobs:
-  # 'deploy' 작업
   deploy:
-    # 4. 실행 환경: 최신 우분투
     runs-on: ubuntu-latest
-
-    # 5. 작업의 세부 단계(Steps)
     steps:
-      # 5-1. GitHub 저장소의 코드를 가져옴
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 5-2. GCP 인증 (GitHub Secrets 사용)
       - name: Authenticate to Google Cloud
         uses: 'google-github-actions/auth@v1'
         with:
           credentials_json: '${{ secrets.GCP_CREDENTIAL }}'
 
-      # 5-3. Terraform CLI 설치
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
-      # 5-4. Terraform 초기화 및 기존 리소스 가져오기 (Import)
-      # 'already exists' 오류를 방지하기 위해 apply 전에 실행
-      - name: Terraform Init and Import
+      # 5-4. Terraform 초기화 (백엔드 설정은 코드로 관리)
+      - name: Terraform Init
         working-directory: terraform/gcp
-        run: |
-          terraform init
-          
-          # 이미 존재하는 Cloud Run Job을 Terraform 상태로 가져오기
-          # 리소스가 없어서 실패해도 || true 덕분에 오류로 처리되지 않음
-          terraform import google_cloud_run_v2_job.log_generator_job projects/main-ember-469911-e9/locations/us-central1/jobs/log-generator-job || true
-          
-          # 이미 존재하는 서비스 계정을 Terraform 상태로 가져오기
-          terraform import google_service_account.scheduler_invoker_sa projects/main-ember-469911-e9/serviceAccounts/scheduler-job-invoker@main-ember-469911-e9.iam.gserviceaccount.com || true
+        run: terraform init
 
-      # 5-5. Cloud Build가 이미지를 빌드할 시간을 주기 위한 대기 (선택사항이지만 안정성을 위해 추천)
+      # 5-5. 대기 시간은 필요하다면 유지
       - name: Wait for Image Build to Complete
         run: |
           echo "Waiting for 2 minutes for the Cloud Build to finish..."
-          sleep 300
+          sleep 150
 
       # 5-6. Terraform 실행 (Apply)
-      # 최신 이미지 URL을 동적으로 생성하여 변수로 전달
       - name: Terraform Apply with Dynamic Image URL
         working-directory: terraform/gcp
         run: |
-          # 현재 커밋의 짧은 해시(7자리)를 가져옴 (Cloud Build의 $SHORT_SHA와 동일)
           export SHORT_SHA=$(git rev-parse --short HEAD)
-          
-          # Cloud Build에서 생성될 최신 이미지 주소를 조합
           export IMAGE_URL="us-central1-docker.pkg.dev/main-ember-469911-e9/devsecops-project/fake_service:${SHORT_SHA}"
-          
           echo "Deploying with image: ${IMAGE_URL}"
           
-          # 조합한 이미지 주소를 'image_url' 변수로 전달하며 Terraform 실행
+          # 불필요한 import 과정이 모두 사라지고 깔끔해짐
           terraform apply -auto-approve -var="image_url=${IMAGE_URL}"
