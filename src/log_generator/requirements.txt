@@ -1,0 +1,2 @@
+# src/log-generator/requirements.txt
+# (비어 있음)
