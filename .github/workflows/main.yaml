@@ -31,7 +31,7 @@ jobs:
       # 5-4. Terraform 초기화 (백엔드 설정은 코드로 관리)
       - name: Terraform Init
         working-directory: terraform/gcp
-        run: terraform init
+        run: terraform init -reconfigure
 
       # 5-5. 대기 시간은 필요하다면 유지
       - name: Wait for Image Build to Complete
