@@ -39,6 +39,23 @@ jobs:
         working-directory: terraform/gcp
         run: terraform init -input=false
 
+      # Import existing resources if they exist
+      - name: Import existing resources
+        working-directory: terraform/gcp
+        continue-on-error: true
+        run: |
+          # Import Cloud Run Job
+          terraform import google_cloud_run_v2_job.log_generator_job projects/main-ember-469911-e9/locations/us-central1/jobs/log-generator-job || true
+
+          # Import Service Account
+          terraform import google_service_account.scheduler_invoker_sa projects/main-ember-469911-e9/serviceAccounts/scheduler-job-invoker@main-ember-469911-e9.iam.gserviceaccount.com || true
+
+          # Import IAM binding
+          terraform import google_cloud_run_v2_job_iam_member.job_invoker_permission "projects/main-ember-469911-e9/locations/us-central1/jobs/log-generator-job roles/run.invoker serviceAccount:scheduler-job-invoker@main-ember-469911-e9.iam.gserviceaccount.com" || true
+
+          # Import Cloud Scheduler
+          terraform import google_cloud_scheduler_job.run_log_generator projects/main-ember-469911-e9/locations/us-central1/jobs/run-log-generator-job-dev || true
+
       # 5-5. 대기 시간은 필요하다면 유지
       - name: Wait for Image Build to Complete
         run: |
