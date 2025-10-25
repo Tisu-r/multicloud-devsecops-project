@@ -61,7 +61,7 @@ jobs:
           export SHORT_SHA=$(git rev-parse --short HEAD)
           
           # Cloud Build에서 생성될 최신 이미지 주소를 조합
-          export IMAGE_URL="us-central1-docker.pkg.dev/main-ember-469911-e9/devsecops-project/app:${SHORT_SHA}"
+          export IMAGE_URL="us-central1-docker.pkg.dev/main-ember-469911-e9/devsecops-project/fake_service:${SHORT_SHA}"
           
           echo "Deploying with image: ${IMAGE_URL}"
           
