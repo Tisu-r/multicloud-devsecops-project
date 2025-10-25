@@ -1,0 +1,3 @@
+# src/log-generator/requirements.txt
+faker
+google-cloud-storage
