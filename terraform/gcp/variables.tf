@@ -44,3 +44,10 @@ variable "environment" {
   type        = string
   default     = "dev"
 }
+
+variable "datadog_api_key" {
+  description = "Datadog API Key for sending logs"
+  type        = string
+  sensitive   = true  # Terraform plan/apply 로그에 값이 노출되지 않도록 함
+  default     = ""    # 선택적으로 제공 가능하도록 기본값 설정
+}

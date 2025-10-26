@@ -65,10 +65,12 @@ jobs:
       # 5-6. Terraform 실행 (Apply)
       - name: Terraform Apply with Dynamic Image URL
         working-directory: terraform/gcp
+        env:
+          TF_VAR_datadog_api_key: ${{ secrets.DD_API_KEY }}  # GitHub Secret을 Terraform 변수로 전달
         run: |
           export SHORT_SHA=$(git rev-parse --short HEAD)
           export IMAGE_URL="us-central1-docker.pkg.dev/main-ember-469911-e9/devsecops-project/fake_service:${SHORT_SHA}"
           echo "Deploying with image: ${IMAGE_URL}"
-          
+
           # 불필요한 import 과정이 모두 사라지고 깔끔해짐
           terraform apply -auto-approve -var="image_url=${IMAGE_URL}"

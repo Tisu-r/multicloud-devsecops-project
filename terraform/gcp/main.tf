@@ -30,9 +30,6 @@ resource "google_project_service" "pubsub_api" {
 
 
 # 2. Cloud Run Job을 생성합니다. (기존 Service에서 변경)
-#  env 
-#           name  = "DATADOG_API_KEY"
-          value = var.datadog_api_key 추가필요 
 # ----------------------------------------------------
 # 이것이 바로 로그를 생성하는 컨테이너를 실행할 '일회성 작업'입니다.
 resource "google_cloud_run_v2_job" "log_generator_job" {
@@ -46,6 +43,18 @@ resource "google_cloud_run_v2_job" "log_generator_job" {
     template {
       containers {
         image = var.image_url # GitHub Actions에서 이 값을 동적으로 전달해줍니다.
+
+        # Datadog API Key를 환경 변수로 주입
+        env {
+          name  = "DD_API_KEY"
+          value = var.datadog_api_key
+        }
+
+        # DD_SITE 환경 변수 추가 (GCP Datadog는 us5 사용)
+        env {
+          name  = "DD_SITE"
+          value = "us5.datadoghq.com"
+        }
       }
     }
   }
