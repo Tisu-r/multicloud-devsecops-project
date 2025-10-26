@@ -35,8 +35,8 @@ variable "image_url" {
 # 새로 추가된 변수
 variable "job_schedule" {
   type        = string
-  description = "The cron schedule for the Cloud Scheduler job (e.g., '*/10 * * * *' for every 10 minutes)."
-  default     = "*/10 * * * *"
+  description = "The cron schedule for the Cloud Scheduler job (e.g., '0 0 */2 * *' for every 2 days at midnight UTC)."
+  default     = "0 0 */2 * *"
 }
 
 variable "environment" {
