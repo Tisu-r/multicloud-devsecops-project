@@ -5,7 +5,21 @@
       "Bash(gcloud iam service-accounts add-iam-policy-binding:*)",
       "Bash(gcloud iam workload-identity-pools providers update:*)",
       "Bash(gcloud iam service-accounts get-iam-policy:*)",
-      "Bash(gcloud iam service-accounts remove-iam-policy-binding:*)"
+      "Bash(gcloud iam service-accounts remove-iam-policy-binding:*)",
+      "Bash(git rm:*)",
+      "Bash(gcloud run jobs describe:*)",
+      "Bash(gcloud run jobs executions list:*)",
+      "Bash(gcloud scheduler jobs describe:*)",
+      "Bash(gcloud logging read:*)",
+      "Bash(gcloud scheduler jobs run:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(gcloud run jobs get-iam-policy:*)",
+      "Bash(git push:*)",
+      "Bash(gcloud pubsub subscriptions list:*)",
+      "Bash(gcloud scheduler jobs delete:*)"
     ],
     "deny": [],
     "ask": []
