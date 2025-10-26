@@ -170,6 +170,13 @@ roles:
 - 최소 권한 원칙 적용
 - Terraform State를 GCS에 중앙 관리
 - `.gitignore`를 통한 민감 정보 보호
+- **GitHub Secrets를 통한 API Key 관리** - Datadog API Key 안전한 주입
+
+#### 5. Datadog 통합 준비
+- **Cloud Run Job에 Datadog API Key 환경 변수 주입**
+- Datadog 통합 가이드 문서 작성 ([docs/DATADOG_INTEGRATION.md](docs/DATADOG_INTEGRATION.md))
+- GCP 구독형 Datadog 연동 방법 상세 안내
+- Log Forwarder, Pipeline, Dashboard 설정 가이드 포함
 
 ### 🚧 진행 예정
 1. **데이터 포워더 개발**: GCS에서 파일을 읽어 Datadog Logs API로 전송하는 Cloud Function 코드 작성
