@@ -13,19 +13,23 @@ GCP Cloud Run Jobs, GitHub Actions, Terraform을 활용한 자동화된 데이�
 ## 🏗️ 아키텍처
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌──────────────────┐
-│   GitHub Repo   │───▶│  GitHub Actions │───▶│  Google Cloud    │
-│                 │    │  (WIF Auth)     │    │                  │
-│ • Source Code   │    │ • Build & Test  │    │ • Artifact Reg.  │
-│ • Terraform     │    │ • Security Scan │    │ • Cloud Run Jobs │
-│ • Workflows     │    │ • Deploy        │    │ • Cloud Scheduler│
-└─────────────────┘    └─────────────────┘    └──────────────────┘
+┌─────────────────┐    ┌─────────────────┐    ┌──────────────────────────┐
+│   GitHub Repo   │───▶│  GitHub Actions │───▶│    Google Cloud          │
+│                 │    │  (WIF Auth)     │    │                          │
+│ • Source Code   │    │ • Build & Test  │    │ • Artifact Registry      │
+│ • Terraform     │    │ • Security Scan │    │ • Cloud Run Jobs         │
+│ • Workflows     │    │ • Deploy        │    │ • Cloud Scheduler        │
+└─────────────────┘    └─────────────────┘    │ • Pub/Sub (Topic + Sub)  │
+                                │              └──────────────────────────┘
                                 │                       │
                                 │                       ▼
                                 │              ┌──────────────────┐
                                 └─────────────▶│   GCS Bucket     │
                                                │ (Terraform State)│
                                                └──────────────────┘
+
+실행 플로우:
+Cloud Scheduler (10분마다) → Pub/Sub Topic → Pub/Sub Subscription → Cloud Run Job
 ```
 
 ## 📁 프로젝트 구조
@@ -66,7 +70,8 @@ multicloud-devsecops-project/
 | 항목 | 값 |
 |------|-----|
 | **GitHub Actions SA** | `github-action-deployer@main-ember-469911-e9.iam.gserviceaccount.com` |
-| **Scheduler Invoker SA** | `scheduler-job-invoker@main-ember-469911-e9.iam.gserviceaccount.com` |
+| **Scheduler Pub/Sub SA** | `scheduler-pubsub-publisher@main-ember-469911-e9.iam.gserviceaccount.com` |
+| **Job Runner SA** | `log-generator-job-runner@main-ember-469911-e9.iam.gserviceaccount.com` |
 | **WIF Pool** | `projects/1082524335295/locations/global/workloadIdentityPools/github-pool` |
 | **WIF Provider** | `projects/1082524335295/locations/global/workloadIdentityPools/github-pool/providers/github-provider` |
 | **GitHub Repository** | `Tisu-r/multicloud-devsecops-project` |
@@ -76,7 +81,9 @@ multicloud-devsecops-project/
 |------------|------|------|
 | **Artifact Registry** | `devsecops-project` | 컨테이너 이미지 저장소 |
 | **Cloud Run Job** | `log-generator-job` | 로그 생성 작업 |
-| **Cloud Scheduler** | `run-log-generator-job-dev` | 10분마다 자동 실행 |
+| **Pub/Sub Topic** | `log-generator-trigger-dev` | Job 트리거용 메시지 큐 |
+| **Pub/Sub Subscription** | `log-generator-subscription-dev` | Job 실행 구독 |
+| **Cloud Scheduler** | `run-log-generator-job-dev` | 10분마다 Pub/Sub 메시지 발행 |
 | **GCS Bucket (State)** | `main-ember-469911-e9-tfstate` | Terraform state 관리 |
 | **GCS Bucket (Logs)** | `cloudbuild-logs-main-ember-469911-e9` | Cloud Build 로그 |
 | **Schedule** | `*/10 * * * *` | 10분마다 실행 |
@@ -124,7 +131,13 @@ roles:
   - roles/artifactregistry.writer         # 이미지 푸시
 ```
 
-### scheduler-job-invoker 서비스 계정 권한
+### scheduler-pubsub-publisher 서비스 계정 권한
+```yaml
+roles:
+  - roles/pubsub.publisher  # Pub/Sub 메시지 발행 권한
+```
+
+### log-generator-job-runner 서비스 계정 권한
 ```yaml
 roles:
   - roles/run.invoker  # Cloud Run Job 실행 권한
@@ -139,10 +152,11 @@ roles:
 - Python 스크립트 및 Dockerfile 완성
 
 #### 2. GCP 인프라 구축
-- Terraform을 통한 Cloud Run Jobs, Cloud Scheduler 설정
+- Terraform을 통한 Cloud Run Jobs, Cloud Scheduler, Pub/Sub 설정
+- **Pub/Sub 기반 이벤트 트리거링** - Scheduler → Topic → Subscription → Job
 - Service Account 및 IAM 권한 구성
 - **GCS Backend를 통한 Terraform State 관리**
-- 변수화된 설정 (프로젝트 ID, 리전 등)
+- 변수화된 설정 (프로젝트 ID, 프로젝트 번호, 리전 등)
 
 #### 3. CI/CD 파이프라인
 - **Workload Identity Federation (WIF) 인증** - 키 없는 안전한 인증

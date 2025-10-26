@@ -21,6 +21,13 @@ resource "google_project_service" "scheduler_api" {
   disable_on_destroy = false
 }
 
+# Pub/Sub API를 활성화합니다.
+resource "google_project_service" "pubsub_api" {
+  project = var.gcp_project_id
+  service = "pubsub.googleapis.com"
+  disable_on_destroy = false
+}
+
 
 # 2. Cloud Run Job을 생성합니다. (기존 Service에서 변경)
 # ----------------------------------------------------
@@ -42,54 +49,98 @@ resource "google_cloud_run_v2_job" "log_generator_job" {
 }
 
 
-# 3. Cloud Scheduler가 Cloud Run Job을 실행할 수 있도록 전용 서비스 계정을 만듭니다.
+# 3. Pub/Sub Topic을 생성합니다.
 # ----------------------------------------------------
-# 보안을 위해 스케줄러만을 위한 최소한의 권한을 가진 계정을 만드는 것이 좋습니다.
-resource "google_service_account" "scheduler_invoker_sa" {
-  project      = var.gcp_project_id
-  account_id   = "scheduler-job-invoker"
-  display_name = "Service Account to invoke Cloud Run Jobs"
+# Cloud Scheduler가 메시지를 발행하고, Cloud Run Job이 구독하는 방식입니다.
+resource "google_pubsub_topic" "log_generator_trigger" {
+  project = var.gcp_project_id
+  name    = "log-generator-trigger-${var.environment}"
+
+  depends_on = [google_project_service.pubsub_api]
 }
 
 
-# 4. 위에서 만든 서비스 계정에게 Cloud Run Job을 '실행(invoke)'할 권한을 부여합니다.
+# 4. Cloud Scheduler가 Pub/Sub에 메시지를 발행할 수 있도록 서비스 계정을 만듭니다.
 # ----------------------------------------------------
-# 공개적으로 열어두는 'allUsers' 대신, 지정된 서비스 계정에게만 권한을 줍니다. (훨씬 안전함)
+resource "google_service_account" "scheduler_pubsub_sa" {
+  project      = var.gcp_project_id
+  account_id   = "scheduler-pubsub-publisher"
+  display_name = "Service Account for Scheduler to publish Pub/Sub messages"
+}
+
+# Pub/Sub Publisher 권한 부여
+resource "google_pubsub_topic_iam_member" "scheduler_publisher" {
+  project = var.gcp_project_id
+  topic   = google_pubsub_topic.log_generator_trigger.name
+  role    = "roles/pubsub.publisher"
+  member  = "serviceAccount:${google_service_account.scheduler_pubsub_sa.email}"
+}
+
+
+# 5. Cloud Run Job을 실행할 수 있는 서비스 계정을 만듭니다.
+# ----------------------------------------------------
+resource "google_service_account" "job_runner_sa" {
+  project      = var.gcp_project_id
+  account_id   = "log-generator-job-runner"
+  display_name = "Service Account to run log generator job"
+}
+
+# Cloud Run Job 실행 권한 부여
 resource "google_cloud_run_v2_job_iam_member" "job_invoker_permission" {
   project  = google_cloud_run_v2_job.log_generator_job.project
   location = google_cloud_run_v2_job.log_generator_job.location
   name     = google_cloud_run_v2_job.log_generator_job.name
-  
-  role   = "roles/run.invoker" # 'run.invoker'는 작업을 호출할 수 있는 권한입니다.
-  member = "serviceAccount:${google_service_account.scheduler_invoker_sa.email}"
+
+  role   = "roles/run.invoker"
+  member = "serviceAccount:${google_service_account.job_runner_sa.email}"
 }
 
 
-# 5. Cloud Scheduler를 생성하여 주기적으로 Cloud Run Job을 실행시킵니다.
+# 6. Cloud Scheduler를 생성하여 주기적으로 Pub/Sub 메시지를 발행합니다.
 # ----------------------------------------------------
 resource "google_cloud_scheduler_job" "run_log_generator" {
   project  = var.gcp_project_id
   name     = "run-log-generator-job-${var.environment}"
-  region = var.gcp_region
-  
+  region   = var.gcp_region
+
   # UNIX cron 형식으로 실행 주기를 설정합니다. "*/10 * * * *"는 '10분마다' 라는 뜻입니다.
-  schedule = var.job_schedule
+  schedule  = var.job_schedule
+  time_zone = "UTC"
 
-  # 호출할 대상(Target)을 지정합니다.
-  http_target {
-    # Cloud Run v2 Job을 실행하는 공식 API 엔드포인트 URL입니다.
-    # v1 API endpoint requires project NUMBER (not ID) in the namespace path
-    uri = "https://${var.gcp_region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.gcp_project_number}/jobs/${var.job_name}:run"
-    http_method = "POST"
-
-    # 인증 방식: 위에서 만든 서비스 계정의 권한을 사용하여 인증합니다.
-    oidc_token {
-      service_account_email = google_service_account.scheduler_invoker_sa.email
-    }
+  # Pub/Sub 타겟으로 변경
+  pubsub_target {
+    topic_name = google_pubsub_topic.log_generator_trigger.id
+    data       = base64encode("{\"trigger\":\"scheduled\"}")
   }
 
   depends_on = [
     google_project_service.scheduler_api,
+    google_pubsub_topic.log_generator_trigger,
+    google_pubsub_topic_iam_member.scheduler_publisher
+  ]
+}
+
+
+# 7. Pub/Sub 구독을 생성하고 Cloud Run Job을 트리거합니다.
+# ----------------------------------------------------
+resource "google_pubsub_subscription" "log_generator_subscription" {
+  project = var.gcp_project_id
+  name    = "log-generator-subscription-${var.environment}"
+  topic   = google_pubsub_topic.log_generator_trigger.name
+
+  # Push 방식으로 Cloud Run Job 실행
+  push_config {
+    push_endpoint = "https://${var.gcp_region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.gcp_project_number}/jobs/${var.job_name}:run"
+
+    oidc_token {
+      service_account_email = google_service_account.job_runner_sa.email
+    }
+  }
+
+  ack_deadline_seconds = 600
+
+  depends_on = [
+    google_pubsub_topic.log_generator_trigger,
     google_cloud_run_v2_job_iam_member.job_invoker_permission
   ]
 }
