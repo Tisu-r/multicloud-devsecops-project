@@ -2,15 +2,45 @@ import json
 import random
 import datetime
 import uuid
+from google.cloud import storage
+import os
+import requests
 
 # pip install Faker
 from faker import Faker
 
 fake = Faker()
 
+# # GCS 버킷 이름: 환경 변수에서 읽어오도록 수정
+# BUCKET_NAME = os.environ.get("BUCKET_NAME")
+# GCS_FOLDER = "raw_logs"
+DD_API_KEY = os.environ.get('DD_API_KEY')
+DD_SITE = os.environ.get('DD_SITE', 'us5.datadoghq.com')
+def send_to_datadog(log_entry):
+    """Datadog Logs API로 로그 전송"""
+    if not DD_API_KEY:
+        print("WARN: DATADOG_API_KEY environment variable not set. Skipping direct log sending.")
+        return 400
+    url = f"https://http-intake.logs.{DD_SITE}/api/v2/logs"
+
+    headers = {
+        "DD-API-KEY": DD_API_KEY,
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "ddsource": "cloud-run-job",
+        "ddtags": f"env:dev,service:log-generator-job",
+        "hostname": "log-generator-job",
+        "message": log_entry
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    return response.status_code
 def generate_log():
     log_type = random.choice(['access', 'business', 'security'])
     
+    # --- 1. ACCESS LOG (일반) ---
     if log_type == 'access':
         return {
           "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
@@ -29,6 +59,7 @@ def generate_log():
           }
         }
         
+    # --- 2. BUSINESS LOG (일반) ---
     elif log_type == 'business':
         return {
           "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
@@ -47,26 +78,65 @@ def generate_log():
           }
         }
         
+    # --- 3. SECURITY LOG (ML Anomaly 주입) ---
     elif log_type == 'security':
+        # --- ML 이상치 주입 로직 (운영 환경 시뮬레이션: 0.5% 확률) ---
+        # 로컬 테스트 후 반드시 0.005로 복구해야 함!
+        if random.random() < 0.005: 
+            attempt_count = random.randint(50, 200) 
+            level = "CRITICAL_ANOMALY" 
+            reason = "massive_brute_force_attempt"
+            
+        else:
+            # 99.5%는 정상적인 보안 로그 생성
+            attempt_count = random.randint(1, 10)
+            level = random.choice(["WARN", "ERROR"])
+            reason = random.choice(["invalid_credentials", "permission_denied", "unauthorized_access"])
+        # --- 이상치 주입 로직 끝 ---
+        
         return {
           "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
-          "level": random.choice(["WARN", "ERROR"]),
+          "level": level,
           "service": "auth-service",
           "event_type": random.choice(["login_failed", "permission_denied", "suspicious_activity"]),
           "message": f"Security event detected: {fake.sentence(nb_words=4)}",
           "details": {
             "user_id": fake.user_name(),
             "source_ip": fake.ipv4(),
-            "reason": random.choice(["invalid_credentials", "brute_force_attempt", "unauthorized_access"]),
-            "attempt_count": random.randint(1, 10)
+            "reason": reason,
+            "attempt_count": attempt_count
           }
         }
 
-if __name__ == "__main__":
-    # Cloud Run Job에서 100개의 로그를 생성하여 파일로 저장한다고 가정
-    logs = [generate_log() for _ in range(100)]
+# def upload_to_gcs(data):
+#     """생성된 로그 리스트를 GCS에 파일로 업로드합니다."""
+#     if not BUCKET_NAME:
+#         print("ERROR: BUCKET_NAME environment variable not set. Skipping GCS upload.")
+#         return
     
-    # 이 데이터를 GCS 버킷에 업로드하는 로직 추가
-    # 예: print(json.dumps(logs, indent=2))
+#     timestamp = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+#     filename = f"{GCS_FOLDER}/log_batch_{timestamp}_{uuid.uuid4()}.jsonl"
+    
+#     # JSONL 형식으로 변환 (Snowflake의 VARIANT 컬럼이 쉽게 로딩할 수 있는 형식)
+#     jsonl_data = "\n".join([json.dumps(log) for log in data])
+
+#     try:
+#         client = storage.Client()
+#         bucket = client.bucket(BUCKET_NAME)
+#         blob = bucket.blob(filename)
+        
+#         print(f"Uploading {len(data)} logs to gs://{BUCKET_NAME}/{filename}")
+#         blob.upload_from_string(jsonl_data, content_type='application/jsonl')
+#         print("Upload complete.")
+#     except Exception as e:
+#         print(f"GCS Upload Error: {e}")
+
+
+if __name__ == "__main__":
+    # Cloud Run Job에서 100개의 로그를 생성
+    logs = [generate_log() for _ in range(100)]
+    # GCS에 로그 파일 업로드
+    # upload_to_gcs(logs)
+    # 이 출력은 Datadog Logs Explorer로 전송되어, Job 실행 검증용으로 사용됩니다.
     for log in logs:
         print(json.dumps(log))

@@ -30,6 +30,9 @@ resource "google_project_service" "pubsub_api" {
 
 
 # 2. Cloud Run Job을 생성합니다. (기존 Service에서 변경)
+#  env 
+#           name  = "DATADOG_API_KEY"
+          value = var.datadog_api_key 추가필요 
 # ----------------------------------------------------
 # 이것이 바로 로그를 생성하는 컨테이너를 실행할 '일회성 작업'입니다.
 resource "google_cloud_run_v2_job" "log_generator_job" {
