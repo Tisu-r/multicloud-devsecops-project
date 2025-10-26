@@ -78,7 +78,7 @@ resource "google_cloud_scheduler_job" "run_log_generator" {
   # 호출할 대상(Target)을 지정합니다.
   http_target {
     # Cloud Run v2 Job을 실행하는 공식 API 엔드포인트 URL입니다.
-    uri = "https://${var.gcp_region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.gcp_project_id}/jobs/${var.job_name}:run"
+    uri = "https://${var.gcp_region}-run.googleapis.com/v2/projects/${var.gcp_project_id}/locations/${var.gcp_region}/jobs/${var.job_name}:run"
     http_method = "POST"
 
     # 인증 방식: 위에서 만든 서비스 계정의 권한을 사용하여 인증합니다.
