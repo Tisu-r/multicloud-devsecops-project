@@ -5,6 +5,12 @@ variable "gcp_project_id" {
   description = "The GCP project ID."
 }
 
+variable "gcp_project_number" {
+  type        = string
+  description = "The GCP project number (used for namespaces in Cloud Run API)."
+  default     = "1082524335295"
+}
+
 variable "gcp_region" {
   type        = string
   description = "The GCP region for resources."
