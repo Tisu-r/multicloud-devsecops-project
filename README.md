@@ -29,7 +29,7 @@ GCP Cloud Run Jobs, GitHub Actions, Terraform을 활용한 자동화된 데이�
                                                └──────────────────┘
 
 실행 플로우:
-Cloud Scheduler (10분마다) → Pub/Sub Topic → Pub/Sub Subscription → Cloud Run Job
+Cloud Scheduler (2일마다 자정 UTC) → Pub/Sub Topic → Pub/Sub Subscription → Cloud Run Job → Datadog
 ```
 
 ## 📁 프로젝트 구조
@@ -51,6 +51,12 @@ multicloud-devsecops-project/
 │       ├── provider.tf           # Terraform Provider 설정
 │       ├── variables.tf          # 변수 정의
 │       └── terraform.tfvars      # 변수 값 설정
+├── docs/
+│   ├── DATADOG_INTEGRATION.md   # Datadog 통합 가이드
+│   ├── DATADOG_MIGRATION_GUIDE.md # Datadog 계정 마이그레이션 가이드
+│   ├── NEXT_STEPS_DATADOG.md    # Datadog 연결 방법
+│   ├── WORK_LOG_2025-10-26.md   # 작업 진도 (2025-10-26)
+│   └── WORK_LOG_2025-10-27.md   # 작업 진도 (2025-10-27)
 ├── cloudbuild.yaml              # Cloud Build 설정
 ├── .gitignore                   # Git 제외 파일
 └── README.md                    # 프로젝트 문서
@@ -83,10 +89,10 @@ multicloud-devsecops-project/
 | **Cloud Run Job** | `log-generator-job` | 로그 생성 작업 |
 | **Pub/Sub Topic** | `log-generator-trigger-dev` | Job 트리거용 메시지 큐 |
 | **Pub/Sub Subscription** | `log-generator-subscription-dev` | Job 실행 구독 |
-| **Cloud Scheduler** | `run-log-generator-job-dev` | 10분마다 Pub/Sub 메시지 발행 |
+| **Cloud Scheduler** | `run-log-generator-job-dev` | 2일마다 Pub/Sub 메시지 발행 |
 | **GCS Bucket (State)** | `main-ember-469911-e9-tfstate` | Terraform state 관리 |
 | **GCS Bucket (Logs)** | `cloudbuild-logs-main-ember-469911-e9` | Cloud Build 로그 |
-| **Schedule** | `*/10 * * * *` | 10분마다 실행 |
+| **Schedule** | `0 0 */2 * *` | 2일마다 자정 UTC 실행 |
 
 ### 컨테이너 이미지
 ```
@@ -172,19 +178,33 @@ roles:
 - `.gitignore`를 통한 민감 정보 보호
 - **GitHub Secrets를 통한 API Key 관리** - Datadog API Key 안전한 주입
 
-#### 5. Datadog 통합 준비
+#### 5. Datadog 통합 완료 ✅
 - **Cloud Run Job에 Datadog API Key 환경 변수 주입**
+- **애플리케이션에서 Datadog으로 직접 로그 전송 구현** (방법 1)
+- 로그 100개/실행 정상 전송 중 (성공률 100%)
 - Datadog 통합 가이드 문서 작성 ([docs/DATADOG_INTEGRATION.md](docs/DATADOG_INTEGRATION.md))
+- Datadog 계정 마이그레이션 가이드 작성 ([docs/DATADOG_MIGRATION_GUIDE.md](docs/DATADOG_MIGRATION_GUIDE.md))
 - GCP 구독형 Datadog 연동 방법 상세 안내
 - Log Forwarder, Pipeline, Dashboard 설정 가이드 포함
 
+#### 6. 스케줄러 최적화 ✅
+- 테스트 완료 후 실행 주기 최적화 (10분마다 → 2일마다)
+- 월 비용 99.7% 절감 (~$65 → ~$0.22)
+- 연간 절감액 약 $777
+
 ### 🚧 진행 예정
-1. **데이터 포워더 개발**: GCS에서 파일을 읽어 Datadog Logs API로 전송하는 Cloud Function 코드 작성
+1. **Datadog 계정 마이그레이션** (14일 후)
+   - 체험판 → 정식 계정 전환
+   - [마이그레이션 가이드](docs/DATADOG_MIGRATION_GUIDE.md) 참고
 2. **보안 강화**: CodeQL/Grype 보안 스캔 통합
-3. **Datadog 설정**:
-   - 수신 로그 파싱 규칙 설정
-   - 특정 조건(예: `level:error`)의 로그만 Snowflake로 전달하는 로그 아카이브 구성
-4. **Snowflake 설정**: Datadog에서 보내는 데이터를 자동으로 수신하는 Snowpipe 구성
+3. **Datadog 모니터링 고도화**:
+   - Dashboard 구축 (로그 레벨별 분포, 서비스별 에러율)
+   - 알림 설정 (ERROR 급증, CRITICAL_ANOMALY 즉시 알림)
+   - Log Archive 설정 (90일 보관 정책)
+4. **Snowflake 연동** (장기 계획):
+   - Datadog Log Archive → Snowflake
+   - ERROR 레벨 로그 자동 전송
+   - Snowpipe 구성
 
 ## 🚀 시작하기
 
@@ -405,7 +425,7 @@ image_url      = "us-docker.pkg.dev/cloudrun/container/hello"  # 기본값
    ↓
 9. Cloud Run Job 업데이트
    ↓
-10. Cloud Scheduler 자동 실행 (10분마다)
+10. Cloud Scheduler 자동 실행 (2일마다 자정 UTC)
 ```
 
 ## 📞 지원 및 기여
@@ -416,13 +436,23 @@ image_url      = "us-docker.pkg.dev/cloudrun/container/hello"  # 기본값
 
 ## 📚 참고 자료
 
+### 프로젝트 문서
+- [Datadog 통합 가이드](docs/DATADOG_INTEGRATION.md) - GCP 구독형 Datadog 설정 및 Log Forwarder 구축
+- [Datadog 계정 마이그레이션 가이드](docs/DATADOG_MIGRATION_GUIDE.md) - 체험판에서 정식 계정으로 전환
+- [Datadog 연결 방법](docs/NEXT_STEPS_DATADOG.md) - 3가지 구현 방법 (직접 전송, Forwarder, 하이브리드)
+- [작업 진도 (2025-10-26)](docs/WORK_LOG_2025-10-26.md) - Pub/Sub 아키텍처 변경 및 Datadog 준비
+- [작업 진도 (2025-10-27)](docs/WORK_LOG_2025-10-27.md) - 스케줄러 최적화 및 마이그레이션 가이드 작성
+
+### 외부 문서
 - [Workload Identity Federation 설정 가이드](https://cloud.google.com/iam/docs/workload-identity-federation)
 - [Terraform GCS Backend](https://developer.hashicorp.com/terraform/language/settings/backends/gcs)
 - [Cloud Run Jobs 문서](https://cloud.google.com/run/docs/create-jobs)
 - [GitHub Actions OIDC](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-google-cloud-platform)
+- [Datadog Logs API](https://docs.datadoghq.com/api/latest/logs/)
+- [Cloud Scheduler Cron 형식](https://cloud.google.com/scheduler/docs/configuring/cron-job-schedules)
 
 ---
 
 🤖 **자동화된 DevSecOps 파이프라인으로 더 나은 개발 경험을 제공합니다.**
 
-*Last Updated: 2025-10-26*
+*Last Updated: 2025-10-27*
