@@ -134,23 +134,19 @@ def generate_log():
 
 if __name__ == "__main__":
     logs = [generate_log() for _ in range(100)]
-    
+
     success_count = 0
     fail_count = 0
-    
+
     for log in logs:
-        # Datadog으로 전송
-        status = send_to_datadog(json.dumps(log))
-        
-        if status == 202:  # Datadog는 성공 시 202 반환
+        # 1. Cloud Logging에 출력 (GCP 콘솔에서 확인용)
+        print(json.dumps(log))
+
+        # 2. Datadog으로 전송
+        status_code = send_to_datadog(log)
+        if status_code == 202:  # Datadog는 202 Accepted 반환
             success_count += 1
         else:
             fail_count += 1
-            print(f"Failed to send log. Status: {status}")
-        
-        # 콘솔에도 출력 (디버깅용)
-        print(json.dumps(log))
-    
-    print(f"\n=== Summary ===")
-    print(f"✅ Successfully sent: {success_count}")
-    print(f"❌ Failed: {fail_count}")
+
+    print(f"📊 Datadog 전송 완료: 성공 {success_count}, 실패 {fail_count}")

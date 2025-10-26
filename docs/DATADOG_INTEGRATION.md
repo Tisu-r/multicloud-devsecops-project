@@ -73,8 +73,7 @@ GCP Marketplace에서 Datadog을 구독한 경우:
    gcloud iam service-accounts create datadog-integration \
      --display-name="Datadog Integration Service Account" \
      --project=main-ember-469911-e9
-
-   # 필요한 권한 부여
+     
    gcloud projects add-iam-policy-binding main-ember-469911-e9 \
      --member="serviceAccount:datadog-integration@main-ember-469911-e9.iam.gserviceaccount.com" \
      --role="roles/compute.viewer"
