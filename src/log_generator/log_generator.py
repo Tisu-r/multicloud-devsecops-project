@@ -2,7 +2,7 @@ import json
 import random
 import datetime
 import uuid
-from google.cloud import storage
+# from google.cloud import storage
 import os
 import requests
 
@@ -133,10 +133,24 @@ def generate_log():
 
 
 if __name__ == "__main__":
-    # Cloud Run Job에서 100개의 로그를 생성
     logs = [generate_log() for _ in range(100)]
-    # GCS에 로그 파일 업로드
-    # upload_to_gcs(logs)
-    # 이 출력은 Datadog Logs Explorer로 전송되어, Job 실행 검증용으로 사용됩니다.
+    
+    success_count = 0
+    fail_count = 0
+    
     for log in logs:
+        # Datadog으로 전송
+        status = send_to_datadog(json.dumps(log))
+        
+        if status == 202:  # Datadog는 성공 시 202 반환
+            success_count += 1
+        else:
+            fail_count += 1
+            print(f"Failed to send log. Status: {status}")
+        
+        # 콘솔에도 출력 (디버깅용)
         print(json.dumps(log))
+    
+    print(f"\n=== Summary ===")
+    print(f"✅ Successfully sent: {success_count}")
+    print(f"❌ Failed: {fail_count}")
