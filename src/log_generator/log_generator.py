@@ -82,7 +82,7 @@ def generate_log():
     elif log_type == 'security':
         # --- ML 이상치 주입 로직 (운영 환경 시뮬레이션: 0.5% 확률) ---
         # 로컬 테스트 후 반드시 0.005로 복구해야 함!
-        if random.random() < 0.005: 
+        if random.random() < 0.1: 
             attempt_count = random.randint(50, 200) 
             level = "CRITICAL_ANOMALY" 
             reason = "massive_brute_force_attempt"
