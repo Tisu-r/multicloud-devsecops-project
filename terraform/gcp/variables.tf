@@ -38,3 +38,7 @@ variable "environment" {
   type        = string
   default     = "dev"
 }
+variable "gcs_bucket_name" {
+  description = "Name for the GCS bucket where logs are stored."
+  type        = string
+}

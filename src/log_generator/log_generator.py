@@ -48,17 +48,35 @@ def generate_log():
         }
         
     elif log_type == 'security':
+        # --- 이상치 주입 로직 시작 ---
+        # 0.5% (0.005)의 확률로 수상한 로그 생성
+        if random.random() < 0.5: 
+            # 1. 비정상적인 attempt_count (Isolation Forest의 핵심 피처)
+            attempt_count = random.randint(50, 200) 
+            # 2. 비정상적인 level (심각도 증가)
+            level = "CRITICAL_ANOMALY" 
+            # 3. 비정상적인 reason (브루트 포스 시도에 집중)
+            reason = "massive_brute_force_attempt"
+            
+        else:
+            # 99.5%는 정상적인 보안 로그 생성
+            attempt_count = random.randint(1, 10)
+            level = random.choice(["WARN", "ERROR"])
+            reason = random.choice(["invalid_credentials", "permission_denied", "unauthorized_access"])
+            
+        # --- 이상치 주입 로직 끝 ---
+
         return {
           "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
-          "level": random.choice(["WARN", "ERROR"]),
+          "level": level,  # 수정된 level 사용
           "service": "auth-service",
           "event_type": random.choice(["login_failed", "permission_denied", "suspicious_activity"]),
           "message": f"Security event detected: {fake.sentence(nb_words=4)}",
           "details": {
             "user_id": fake.user_name(),
             "source_ip": fake.ipv4(),
-            "reason": random.choice(["invalid_credentials", "brute_force_attempt", "unauthorized_access"]),
-            "attempt_count": random.randint(1, 10)
+            "reason": reason, # 수정된 reason 사용
+            "attempt_count": attempt_count # 수정된 attempt_count 사용
           }
         }
 
