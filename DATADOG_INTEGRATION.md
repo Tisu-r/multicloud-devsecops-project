@@ -208,7 +208,7 @@ jsonPayload.service="auth-service"'
 import requests
 import os
 
-DD_API_KEY = os.environ.get('51d1b347e7d2687eb0e467f8f9bf8c6e')
+DD_API_KEY = os.environ.get('DD_API_KEY')
 DD_SITE = os.environ.get('DD_SITE', 'us5.datadoghq.com')
 
 def send_to_datadog(log_entry):

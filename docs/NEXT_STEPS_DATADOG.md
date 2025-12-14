@@ -184,7 +184,7 @@ gcloud functions deploy datadog-log-forwarder \
   --runtime=python39 \
   --trigger-topic=datadog-logs \
   --entry-point=forward_logs \
-  --set-env-vars DD_API_KEY=51d1b347e7d2687eb0e467f8f9bf8c6e,DD_SITE=us5.datadoghq.com \
+  --set-env-vars DD_API_KEY=<YOUR_DATADOG_API_KEY>,DD_SITE=us5.datadoghq.com \
   --region=us-central1 \
   --project=main-ember-469911-e9 \
   --memory=256MB \
@@ -247,7 +247,7 @@ gcloud functions deploy datadog-log-forwarder \
   --runtime=python39 \
   --trigger-topic=datadog-logs \
   --entry-point=forward_logs \
-  --set-env-vars DD_API_KEY=51d1b347e7d2687eb0e467f8f9bf8c6e,DD_SITE=us5.datadoghq.com \
+  --set-env-vars DD_API_KEY=<YOUR_DATADOG_API_KEY>,DD_SITE=us5.datadoghq.com \
   --region=us-central1 \
   --project=main-ember-469911-e9
 ```
@@ -436,7 +436,7 @@ gcloud functions logs read datadog-log-forwarder \
 
 # 4. Datadog API 직접 테스트
 curl -X POST "https://http-intake.logs.us5.datadoghq.com/api/v2/logs" \
-  -H "DD-API-KEY: 51d1b347e7d2687eb0e467f8f9bf8c6e" \
+  -H "DD-API-KEY: <YOUR_DATADOG_API_KEY>" \
   -H "Content-Type: application/json" \
   -d '{"message":"test log", "ddsource":"test"}'
 ```

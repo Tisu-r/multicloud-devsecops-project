@@ -17,7 +17,7 @@
 
 | 항목 | 현재 값 (체험판) | 변경 필요 여부 |
 |------|------------------|----------------|
-| **Datadog API Key** | `51d1b347e7d2687eb0e467f8f9bf8c6e` | ✅ 필수 |
+| **Datadog API Key** | `<YOUR_DATADOG_API_KEY>` | ✅ 필수 |
 | **Datadog Site** | `us5.datadoghq.com` | ⚠️ 계정마다 다름 |
 | **Service Account** | `ddgci-d88faed1b2e964bca68f@...` | ⚠️ GCP Integration 사용 시 |
 | **코드** | `log_generator.py` | ❌ 변경 불필요 |
@@ -54,7 +54,7 @@ API Keys 페이지 상단에 표시된 Site URL 확인:
 현재 설정 백업:
 ```bash
 # GitHub Secret 값 기록 (GitHub UI에서 확인 불가하므로 기억해두기)
-# 현재 API Key: 51d1b347e7d2687eb0e467f8f9bf8c6e
+# 현재 API Key: <YOUR_DATADOG_API_KEY>
 
 # 현재 설정 파일 백업
 git checkout -b backup/datadog-trial-config
@@ -262,7 +262,7 @@ gcloud scheduler jobs describe run-log-generator-job-dev \
 
 1. GitHub → **Settings → Secrets and variables → Actions**
 2. `DD_API_KEY` 업데이트
-3. 구 API Key 재입력: `51d1b347e7d2687eb0e467f8f9bf8c6e`
+3. 구 API Key 재입력: `<YOUR_DATADOG_API_KEY>`
 
 ### 2. Terraform 변수 복원 (변경한 경우)
 

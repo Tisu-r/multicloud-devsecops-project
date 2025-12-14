@@ -10,7 +10,6 @@ import requests
 from faker import Faker
 
 fake = Faker()
-
 # # GCS 버킷 이름: 환경 변수에서 읽어오도록 수정
 # BUCKET_NAME = os.environ.get("BUCKET_NAME")
 # GCS_FOLDER = "raw_logs"
